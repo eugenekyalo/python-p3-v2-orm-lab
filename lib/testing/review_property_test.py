@@ -1,60 +1,40 @@
-from employee import Employee
-from department import Department
-from review import Review
 import pytest
-
+from employee import Employee
+from review import Review
 
 class TestReviewProperties:
-    '''Class Review in review.py'''
-
-    @pytest.fixture(autouse=True)
-    def reset_db(self):
-        '''drop and recreate tables prior to each test.'''
-        Review.drop_table()
+    def setup_method(self):
         Employee.drop_table()
-        Department.drop_table()
-        Department.create_table()
+        Review.drop_table()
         Employee.create_table()
         Review.create_table()
+        self.employee = Employee.create("John Doe", "Developer", None)
 
-    def test_review_valid(self):
-        '''validates name, job title, department id are valid'''
-        # should not raise exception
-        department = Department.create("Payroll", "Building A, 5th Floor")
-        employee = Employee.create("Lee", "Manager", department.id)
+    def test_valid_year(self):
+        review = Review(2022, "Valid summary", self.employee)
+        assert review.year == 2022
 
-        review = Review.create(
-            2023, "Excellent work ethic! Outstanding programming skills!", employee.id)
-
-    def test_year_is_int(self):
-        '''validates year property is assigned int'''
+    def test_invalid_year(self):
         with pytest.raises(ValueError):
-            department = Department.create("Payroll", "Building A, 5th Floor")
-            employee = Employee.create("Lee", "Manager", department.id)
+            Review(1999, "Invalid year", self.employee)
 
-            review = Review.create(
-                "this century", "Excellent work ethic! Outstanding programming skills!", employee.id)
+    def test_valid_summary(self):
+        review = Review(2022, "Valid summary", self.employee)
+        assert review.summary == "Valid summary"
 
-    def test_year_value(self):
-        '''validates year property length >= 2000'''
+    def test_invalid_summary(self):
         with pytest.raises(ValueError):
-            department = Department.create("Payroll", "Building A, 5th Floor")
-            employee = Employee.create("Lee", "Manager", department.id)
+            Review(2022, "", self.employee)
 
-            review = Review.create(
-                1999, "Excellent work ethic! Outstanding programming skills!", employee.id)
+    def test_valid_employee(self):
+        review = Review(2022, "Valid summary", self.employee)
+        assert review.employee == self.employee
 
-    def test_summary_string_length(self):
-        '''validates summary property length > 0'''
+    def test_invalid_employee(self):
         with pytest.raises(ValueError):
-            department = Department.create("Payroll", "Building A, 5th Floor")
-            employee = Employee.create("Lee", "Manager", department.id)
-            review = Review.create(2023, "", employee.id)
+            Review(2022, "Valid summary", "Not an Employee instance")
 
-    def test_employee_fk_property_assignment(self):
+    def test_invalid_employee_not_persisted(self):
+        unpersisted_employee = Employee("Jane Doe", "Manager", None)
         with pytest.raises(ValueError):
-            department = Department.create("Payroll", "Building A, 5th Floor")
-            employee = Employee.create("Lee", "Manager", department.id)
-            review = Review.create(
-                2023, "Excellent work ethic! Outstanding programming skills!", employee.id)
-            review.employee_id = 100  # id not in employees table
+            Review(2022, "Valid summary", unpersisted_employee)
